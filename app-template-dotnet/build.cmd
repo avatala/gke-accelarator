@@ -1,0 +1,1 @@
+docker build -t helloworld-image -f Dockerfile .

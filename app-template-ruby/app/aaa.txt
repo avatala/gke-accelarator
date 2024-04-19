@@ -1,0 +1,2 @@
+docker push us-docker.pkg.dev/sdp-gke-dev-ae5a/gke-dev/ror-new
+docker tag ror-new us-docker.pkg.dev/sdp-gke-dev-ae5a/gke-dev/ror-new

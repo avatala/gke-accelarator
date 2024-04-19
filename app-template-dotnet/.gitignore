@@ -1,0 +1,13 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+.vs/
+bin/
+obj/
+is-signing-key*.json
+*.pubxml.user
+*.csproj.user
+*.vcxproj.user
+*dotnet-tools.json
+*.vssscc
+*.vspscc

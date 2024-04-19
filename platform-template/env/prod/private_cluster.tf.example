@@ -1,0 +1,117 @@
+
+# Copyright 2020 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+locals {
+  # description = [for item in module.create-vpc.network.subnets : item.description]
+  # gateway_address = [for item in module.create-vpc.network.subnets : item.gateway_address]
+  # id = [for item in module.create-vpc.network.subnets : item.id]
+  # ip_cidr_range = [for item in module.create-vpc.network.subnets : item.ip_cidr_range]
+  # name = [for item in module.create-vpc.network.subnets : item.name]
+  # network = [for item in module.create-vpc.network.subnets : item.network]
+  # private_ip_google_access = [for item in module.create-vpc.network.subnets : item.private_ip_google_access]
+  # project = [for item in module.create-vpc.network.subnets : item.project]
+  # region = [for item in module.create-vpc.network.subnets : item.region]
+  # secondary_ip_range =  [for item in module.create-vpc.network.subnets : [ for i in item.secondary_ip_range : { ip_cidr_range =  i.ip_cidr_range  , range_name =  i.range_name } ] ]
+  # self_link = [for item in module.create-vpc.network.subnets : item.self_link]
+  # #subnet1 = {description = local.description[0] , gateway_address = local.gateway_address[0], id = local.id[0] ,ip_cidr_range = local.ip_cidr_range[0], name = local.name[0] , network = local.network[0] , private_ip_google_access = local.private_ip_google_access[0] , project = local.project[0] , region = local.region[0] , self_link = local.self_link[0] , secondary_ip_range = local.secondary_ip_range[0]  }
+  
+  subnet1_private = { description = "" , 
+              gateway_address = "",
+              id = data.google_compute_subnetwork.sub_network_private.id , 
+              ip_cidr_range ="", 
+              name = var.subnet_01_name , 
+              network = var.network_name, 
+              private_ip_google_access = "", 
+              project = var.gke_project_name , 
+              network_project_id = var.vpc_host_project_name,  
+              region = var.subnet_01_region , 
+              self_link = data.google_compute_subnetwork.sub_network_private.self_link , 
+              secondary_pod_subnet_name = var.subnet_01_secondary_pod_name , 
+              secondary_service_subnet_name = var.subnet_01_secondary_svc_1_name }
+
+
+  #subnet2 = {description = local.description[1] , gateway_address = local.gateway_address[1], id = local.id[1] ,ip_cidr_range = local.ip_cidr_range[1], name = local.name[1] , network = local.network[1] , private_ip_google_access = local.private_ip_google_access[1] , project = local.project[1] , region = local.region[1] , self_link = local.self_link[1] , secondary_ip_range = local.secondary_ip_range[1]  }
+  gke_cluster_id_private = format("projects/%s/locations/%s/clusters/%s",module.create-gcp-project.project.project_id,module.create_gke_private.cluster_name.location,module.create_gke_private.cluster_name.name)
+
+}
+
+
+data "google_compute_network" "vpc_network_private" {
+  name = var.network_name
+  project = var.vpc_host_project_name
+}
+
+
+data "google_compute_subnetwork" "sub_network_private" {
+  name = var.subnet_01_name
+  region = var.subnet_01_region
+  project = var.vpc_host_project_name
+}
+# Create GKE zonal cluster in platform_admin project using subnet-01 zone a
+module "create_gke_private" {
+  source            = "../../modules/gke_private/"
+  subnet            = local.subnet1_private
+  project_id        = module.create-gcp-project.project.project_id
+  suffix            = "1"
+  zones             = var.zones
+  regional          = var.regional
+  env               = var.env
+  project_number    = module.create-gcp-project.project.project_number
+  node_pools        = var.node_pools
+  #service_account   = module.create-gcp-project.project.service_account_email
+#   depends_on        = [
+#                         google_project_iam_binding.compute-networkuser
+#                       ]
+}
+
+module "secret-gke-name-private" {
+  source            = "../../modules/secrets/"
+  //secret            = module.create_gke_private.name.name
+  secret            =  local.gke_cluster_id_private
+  secret_id         = "${var.env}-p-gke-cluster-1"
+  project_id        =  var.project_id
+  group             =  var.group
+}
+
+
+module "secret-gke-sa-private" {
+  source            = "../../modules/secrets/"
+  #secret            =  "${data.google_project.project.number}-compute@developer.gserviceaccount.com"
+  secret            =  module.create_gke_private.cluster_name.service_account
+  secret_id         = "${var.env}-p-gke-sa"
+  project_id        =  var.project_id
+  group             =  var.group
+}
+
+module "secret-gke-ca-private" {
+  source            = "../../modules/secrets/"
+  #secret            =  google_container_cluster.gke_cluster.master_auth.0.cluster_ca_certificate
+  secret            =  module.create_gke_private.cluster_name.ca_certificate
+  secret_id         = "${var.env}-p-gke-ca"
+  project_id        =  var.project_id
+  group             =  var.group
+}
+
+  
+module "secret-gke-endpoint-private" {
+  source            = "../../modules/secrets/"
+  #secret            =  google_container_cluster.gke_cluster.endpoint
+  secret            =  module.create_gke_private.cluster_name.endpoint
+  secret_id         = "${var.env}-p-gke-endpoint"
+  project_id        =  var.project_id
+  group             =  var.group
+}
+
